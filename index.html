@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Localhost:8080</title>
+    <style>
+        body {
+            background-color: #eeeeee;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* HEADER STYLES */
+        .jupyter-header {
+            background: white;
+            width: 100%;
+            border-bottom: 1px solid #ababab;
+            color: #333;
+            font-size: 13px;
+            padding-bottom: 5px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .header-top { display: flex; justify-content: space-between; padding: 8px 20px; align-items: center; }
+        .logo-area { display: flex; align-items: center;}
+        .filename { font-size: 18px; font-weight: 500; margin-left: 15px; color: #000; }
+        .menu-bar { padding: 2px 20px; display: flex; gap: 15px; color: #222; }
+        .tool-bar { display: flex; align-items: center; padding: 5px 20px; gap: 5px; border-top: 1px solid #ddd; margin-top: 5px; }
+        .tool-bar button { background: none; border: 1px solid transparent; padding: 5px 8px; color: #555; cursor: pointer; }
+        .separator { width: 1px; height: 20px; background: #ddd; margin: 0 5px; }
+
+        /* CONTAINER */
+        .notebook-container {
+            background-color: white;
+            width: 950px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 40px 20px;
+            margin-top: 20px;
+            margin-bottom: 50px;
+            min-height: 100vh;
+        }
+
+        /* CELL STYLES */
+        .cell-wrapper {
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .cell {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            position: relative;
+        }
+        .input-prompt {
+            color: #303F9F;
+            font-family: monospace;
+            min-width: 90px;
+            text-align: right;
+            padding-right: 12px;
+            padding-top: 10px;
+            font-size: 14px;
+        }
+        .input-area-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+        }
+        .input-area {
+            flex-grow: 1;
+            background-color: #f7f7f7;
+            border: 1px solid #cfcfcf;
+            border-radius: 2px;
+            padding: 10px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            color: #000;
+            min-height: 1.5em; /* Ensures the cell has a shape when "empty" */
+            transition: all 0.2s ease;
+        }
+
+        /* COLLAPSE LOGIC */
+        .collapse-btn {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 5px;
+            z-index: 10;
+        }
+
+        /* When Collapsed: Hide text and output, but keep the box */
+        .collapsed .input-area {
+            color: transparent; /* Makes text invisible */
+            height: 20px;       /* Fixed small height for "empty" look */
+            overflow: hidden;
+            background-color: #fcfcfc; /* Slightly lighter to show it's inactive */
+        }
+        
+        .collapsed .output-area {
+            display: none; /* Output is still completely hidden */
+        }
+
+        .collapsed .collapse-btn i {
+            transform: rotate(-90deg);
+        }
+
+        .output-area {
+            margin-left: 102px;
+            padding: 10px 0 20px 0;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="jupyter-header">
+    <div class="header-top">
+        <div class="logo-area">
+            <img src="https://i.postimg.cc/908pqfW1/jupyter-logo-icon-169453.png" width = "100">
+            <span class="filename">Untitled - Last Checkpoint: 1 min ago</span>
+        </div>
+        <div class="header-top-right">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg" width="22">
+        </div>
+    </div>
+    <div class="menu-bar">
+        <span>File</span><span>Edit</span><span>View</span><span>Run</span><span>Kernel</span><span>Settings</span><span>Help</span>
+    </div>
+    <div class="tool-bar">
+        <button><i class="fa fa-floppy-o"></i></button>
+        <button><i class="fa fa-plus"></i></button>
+        <button><i class="fa fa-scissors"></i></button>
+        <div class="separator"></div>
+        <button><i class="fa fa-play"></i></button>
+        <button><i class="fa fa-stop"></i></button>
+        <div class="separator"></div>
+        <select class="cell-type"><option>Code</option></select>
+    </div>
+</div>
+
+<div class="notebook-container">
+
+    <div class="cell-wrapper collapsed" id="cell-1">
+        <div class="cell">
+            <div class="input-prompt">In&nbsp;[1]:</div>
+            <div class="input-area-container">
+                <div class="input-area">Decision Tree Cart
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.metrics import accuracy_score, classification_report
+import matplotlib.pyplot as plt
+
+# 1. Load data
+df = pd.read_csv("/content/mushrooms.csv")   # target column 'class'
+
+# 2. One-hot encode all predictors except target
+X = pd.get_dummies(df.drop(columns=['class']), drop_first=True)
+y = df['class'].map({'e': 0, 'p': 1})  # 0: edible, 1: poisonous
+
+# 3. Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# 4. Decision tree (CART)
+tree = DecisionTreeClassifier(
+    criterion='gini',
+    max_depth=5,
+    min_samples_leaf=10,
+    random_state=42
+)
+tree.fit(X_train, y_train)
+
+# 5. Evaluation
+y_pred = tree.predict(X_test)
+print("CART Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred, target_names=['edible', 'poisonous']))
+
+# 6. Simple tree visualization
+plt.figure(figsize=(16, 8))
+plot_tree(
+    tree,
+    feature_names=X.columns,
+    class_names=['edible', 'poisonous'],
+    filled=True,
+    max_depth=3,
+    fontsize=8
+)
+plt.title("Mushroom CART (first 3 levels)")
+plt.show()</div>
+                <button class="collapse-btn" onclick="toggleCell('cell-1')">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cell-wrapper collapsed" id="cell-2">
+        <div class="cell">
+            <div class="input-prompt">In&nbsp;[2]:</div>
+            <div class="input-area-container">
+                <div class="input-area">SLR
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Load data
+df = pd.read_csv("/content/2019.csv")
+
+# 2. Select variables
+X = df[['GDP per capita']]
+y = df['Score'] # Corrected column name to 'Score'
+
+# 3. Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 4. Fit model
+lr = LinearRegression()
+lr.fit(X_train, y_train)
+
+# 5. Evaluation
+y_pred = lr.predict(X_test)
+print("Intercept:", lr.intercept_)
+print("Slope (per GDP unit):", lr.coef_[0])
+print("R^2:", r2_score(y_test, y_pred))
+print("RMSE:", np.sqrt(mean_squared_error(y_test, y_pred)))
+
+# 6. Plot regression line (using full data for nice plot)
+plt.scatter(df['GDP per capita'], df['Score'], alpha=0.5, label='Data') # Corrected column name to 'Score'
+x_line = np.linspace(df['GDP per capita'].min(), df['GDP per capita'].max(), 100).reshape(-1, 1)
+y_line = lr.predict(x_line)
+plt.plot(x_line, y_line, color='red', label='Regression line')
+plt.xlabel('GDP per capita')
+plt.ylabel('Happiness score')
+plt.title('Happiness vs GDP per capita')
+plt.legend()
+plt.show()</div>
+                <button class="collapse-btn collapsed" onclick="toggleCell('cell-2')">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="cell-wrapper collapsed" id="cell-3">
+        <div class="cell">
+            <div class="input-prompt">In&nbsp;[3]:</div>
+            <div class="input-area-container">
+                <div class="input-area">MLR
+                    import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
+import numpy as np
+
+# 1. Load data
+df = pd.read_csv("/content/student-mat.csv", sep=';')  # original uses semicolon
+
+# 2. Select numeric predictors and target
+features = ['studytime', 'absences', 'G1', 'G2']
+X = df[features]
+y = df['G3']
+
+# 3. Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 4. Fit model
+mlr = LinearRegression()
+mlr.fit(X_train, y_train)
+
+# 5. Evaluation
+y_pred = mlr.predict(X_test)
+print("Intercept:", mlr.intercept_)
+print("Coefficients:")
+for f, c in zip(features, mlr.coef_):
+    print(f"  {f}: {c:.3f}")
+
+print("R^2:", r2_score(y_test, y_pred))
+print("RMSE:", np.sqrt(mean_squared_error(y_test, y_pred)))
+                </div>
+                <button class="collapse-btn" onclick="toggleCell('cell-3')">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cell-wrapper collapsed" id="cell-4">
+        <div class="cell">
+            <div class="input-prompt">In&nbsp;[4]:</div>
+            <div class="input-area-container">
+                <div class="input-area">LR
+                    import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer # Import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline # Import Pipeline for nested steps
+
+# 1. Load data
+df = pd.read_csv("/content/telecom_customer_churn.csv")
+
+# Print columns to identify the correct target column name
+# print("DataFrame columns:", df.columns)
+
+# Check unique values in 'Customer Status' to understand the issue
+print("Unique values in 'Customer Status':\n", df['Customer Status'].value_counts(dropna=False))
+
+# 2. Define target (adjust column name as per dataset)
+y = df['Customer Status'].map({'Stayed': 0, 'Churned': 1, 'Joined': 0}) # Corrected mapping for all statuses
+
+# 3. Drop identifier and target columns
+df = df.drop(columns=['Customer ID', 'Customer Status'], errors='ignore') # Drop 'Customer ID' and the target 'Customer Status'
+
+# 4. Separate numeric and categorical columns
+num_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+cat_cols = df.select_dtypes(include=['object', 'bool']).columns.tolist()
+
+# Create pipelines for numerical and categorical features including imputation
+num_pipeline = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())
+])
+
+cat_pipeline = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# 5. Preprocess: scale numeric + one-hot encode categoricals
+preprocess = ColumnTransformer(
+    transformers=[
+        ('num', num_pipeline, num_cols),
+        ('cat', cat_pipeline, cat_cols)
+    ]
+)
+
+# 6. Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    df, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# 7. Pipeline: preprocessing + logistic regression
+
+logreg = Pipeline(steps=[
+    ('pre', preprocess),
+    ('clf', LogisticRegression(max_iter=1000))
+])
+
+logreg.fit(X_train, y_train)
+
+# 8. Evaluation
+y_pred = logreg.predict(X_test)
+y_prob = logreg.predict_proba(X_test)[:, 1]
+
+print("Logistic Accuracy:", accuracy_score(y_test, y_pred))
+print("Logistic ROC AUC:", roc_auc_score(y_test, y_prob))
+print(classification_report(y_test, y_pred))
+                </div>
+                <button class="collapse-btn" onclick="toggleCell('cell-4')">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cell-wrapper collapsed" id="cell-5">
+        <div class="cell">
+            <div class="input-prompt">In&nbsp;[5]:</div>
+            <div class="input-area-container">
+                <div class="input-area">KNN
+                    import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+# 1. Load data with no header, as the first row is data and the last column is the target
+df = pd.read_csv("/content/glass.data", header=None)
+
+# 2. Features and target
+# Assuming the first column (index 0) is ID and the last column (index 10) is the target 'Type'
+X = df.iloc[:, 1:-1] # Features are from column 1 up to (but not including) the last one
+y = df.iloc[:, -1]   # Target is the last column
+
+# 3. Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# 4. Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# 5. KNN model
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train_scaled, y_train)
+
+# 6. Evaluation
+y_pred = knn.predict(X_test_scaled)
+print("KNN Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+                </div>
+                <button class="collapse-btn" onclick="toggleCell('cell-5')">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="cell-wrapper collapsed" id="cell-6">
+        <div class="cell">
+            <div class="input-prompt">In&nbsp;[6]:</div>
+            <div class="input-area-container">
+                <div class="input-area">NB
+                    import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, roc_auc_score, confusion_matrix, classification_report
+
+# 1. Load data (already filtered to English and cleaned)
+df = pd.read_csv("/content/data-en-hi-de-fr.csv")   # columns: text, labels
+
+# 2. Encode label
+df['label_num'] = df['labels'].map({'ham': 0, 'spam': 1}) # Changed 'label' to 'labels'
+
+X = df['text']
+y = df['label_num']
+
+# 3. Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# 4. TF-IDF vectorizer
+tfidf = TfidfVectorizer(max_features=5000, stop_words='english')
+X_train_tfidf = tfidf.fit_transform(X_train)
+X_test_tfidf = tfidf.transform(X_test)
+
+# 5. Multinomial NB
+nb = MultinomialNB(alpha=1.0)
+nb.fit(X_train_tfidf, y_train)
+
+# 6. Evaluation
+y_pred = nb.predict(X_test_tfidf)
+y_prob = nb.predict_proba(X_test_tfidf)[:, 1]
+
+print("NB Accuracy:", accuracy_score(y_test, y_pred))
+print("NB ROC AUC:", roc_auc_score(y_test, y_prob))
+print("Confusion matrix:\n", confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred, target_names=['ham', 'spam']))
+
+                </div>
+                <button class="collapse-btn" onclick="toggleCell('cell-6')">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function toggleCell(cellId) {
+        const cellElement = document.getElementById(cellId);
+        cellElement.classList.toggle('collapsed');
+    }
+</script>
+
+</body>
+</html>
